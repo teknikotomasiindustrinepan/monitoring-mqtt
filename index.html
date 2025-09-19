@@ -5,6 +5,25 @@
   <title>Monitoring MQTT via GitHub Pages</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .lamp {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 20px auto;
+      background: gray;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .lamp.on {
+      background: yellow;
+      box-shadow: 0 0 40px 15px yellow;
+    }
+    .lamp.off {
+      background: #444;
+      box-shadow: none;
+    }
+  </style>
 </head>
 <body style="font-family: Arial; text-align:center; margin:20px;">
   <h2>📡 Monitoring Data Sensor (Node-RED → MQTT → GitHub Pages)</h2>
@@ -15,19 +34,23 @@
 
   <canvas id="myChart" width="600" height="300"></canvas>
 
+  <h2>💡 Status Lampu</h2>
+  <div id="lamp" class="lamp off"></div>
+  <p id="status">Menunggu data lampu...</p>
+
   <script>
     // 🔹 Konfigurasi MQTT Broker HiveMQ Public
-    const broker = "wss://broker.hivemq.com:8884/mqtt"; // WebSocket port
-    const topic = "smk/monitoring/sensor"; // sesuaikan dengan topik Node-RED kamu
+    const broker = "wss://broker.hivemq.com:8884/mqtt"; 
+    const topicSensor = "smk/monitoring/sensor"; 
+    const topicLamp = "lamp/status"; // topik lampu
 
     // 🔹 Connect ke broker
     const client = mqtt.connect(broker);
 
     client.on("connect", () => {
       console.log("✅ Connected to MQTT broker");
-      client.subscribe(topic, (err) => {
-        if (!err) console.log("Subscribed to", topic);
-      });
+      client.subscribe(topicSensor);
+      client.subscribe(topicLamp);
     });
 
     // 🔹 Setup Chart.js
@@ -55,23 +78,36 @@
     // 🔹 Saat ada pesan masuk
     client.on("message", (topic, message) => {
       const data = message.toString();
-      console.log("Pesan diterima:", data);
 
-      // Tampilkan data terbaru
-      document.getElementById("latest").innerText = data;
+      if (topic === topicSensor) {
+        console.log("Sensor:", data);
+        document.getElementById("latest").innerText = data;
 
-      // Tambahkan ke chart
-      const now = new Date().toLocaleTimeString();
-      chart.data.labels.push(now);
-      chart.data.datasets[0].data.push(parseFloat(data));
+        const now = new Date().toLocaleTimeString();
+        chart.data.labels.push(now);
+        chart.data.datasets[0].data.push(parseFloat(data));
 
-      // Batasi jumlah data di grafik
-      if (chart.data.labels.length > 20) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
+        if (chart.data.labels.length > 20) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+        }
+
+        chart.update();
       }
 
-      chart.update();
+      if (topic === topicLamp) {
+        console.log("Lamp:", data);
+        const lamp = document.getElementById("lamp");
+        const text = document.getElementById("status");
+
+        if (data === "ON") {
+          lamp.className = "lamp on";
+          text.textContent = "Lampu MENYALA 💡";
+        } else {
+          lamp.className = "lamp off";
+          text.textContent = "Lampu MATI ❌";
+        }
+      }
     });
   </script>
 </body>
