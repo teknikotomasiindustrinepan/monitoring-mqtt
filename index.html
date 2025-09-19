@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Monitoring MQTT via GitHub Pages</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="font-family: Arial; text-align:center; margin:20px;">
+  <h2>📡 Monitoring Data Sensor (Node-RED → MQTT → GitHub Pages)</h2>
+  
+  <div>
+    <p><b>Data Terakhir:</b> <span id="latest">-</span></p>
+  </div>
+
+  <canvas id="myChart" width="600" height="300"></canvas>
+
+  <script>
+    // 🔹 Konfigurasi MQTT Broker HiveMQ Public
+    const broker = "wss://broker.hivemq.com:8884/mqtt"; // WebSocket port
+    const topic = "smk/monitoring/sensor"; // sesuaikan dengan topik Node-RED kamu
+
+    // 🔹 Connect ke broker
+    const client = mqtt.connect(broker);
+
+    client.on("connect", () => {
+      console.log("✅ Connected to MQTT broker");
+      client.subscribe(topic, (err) => {
+        if (!err) console.log("Subscribed to", topic);
+      });
+    });
+
+    // 🔹 Setup Chart.js
+    const ctx = document.getElementById("myChart").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Data Sensor",
+          borderColor: "blue",
+          fill: false,
+          data: []
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: "Waktu" } },
+          y: { title: { display: true, text: "Nilai" } }
+        }
+      }
+    });
+
+    // 🔹 Saat ada pesan masuk
+    client.on("message", (topic, message) => {
+      const data = message.toString();
+      console.log("Pesan diterima:", data);
+
+      // Tampilkan data terbaru
+      document.getElementById("latest").innerText = data;
+
+      // Tambahkan ke chart
+      const now = new Date().toLocaleTimeString();
+      chart.data.labels.push(now);
+      chart.data.datasets[0].data.push(parseFloat(data));
+
+      // Batasi jumlah data di grafik
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+
+      chart.update();
+    });
+  </script>
+</body>
+</html>
