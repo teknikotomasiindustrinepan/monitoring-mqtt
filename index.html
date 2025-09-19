@@ -38,6 +38,20 @@
   <div id="lamp" class="lamp off"></div>
   <p id="status">Menunggu data lampu...</p>
 
+  <h2>🔘 Kontrol Lampu</h2>
+  <button onclick="toggleLamp('ON')">Hidupkan Lampu</button>
+  <button onclick="toggleLamp('OFF')">Matikan Lampu</button>
+
+  <script>
+  const topicControl = "lamp/control"; // topik untuk perintah lampu
+
+  function toggleLamp(cmd) {
+    console.log("Kirim perintah:", cmd);
+    client.publish(topicControl, cmd); // kirim ON/OFF ke Node-RED
+  }
+</script>
+
+  
   <script>
     // 🔹 Konfigurasi MQTT Broker HiveMQ Public
     const broker = "wss://broker.hivemq.com:8884/mqtt"; 
