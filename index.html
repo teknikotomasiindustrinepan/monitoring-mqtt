@@ -43,20 +43,11 @@
   <button onclick="toggleLamp('OFF')">Matikan Lampu</button>
 
   <script>
-  const topicControl = "lamp/status"; // topik untuk perintah lampu
-
-  function toggleLamp(cmd) {
-    console.log("Kirim perintah:", cmd);
-    client.publish(topicControl, cmd); // kirim ON/OFF ke Node-RED
-  }
-</script>
-
-  
-  <script>
     // 🔹 Konfigurasi MQTT Broker HiveMQ Public
     const broker = "wss://broker.hivemq.com:8884/mqtt"; 
-    const topicSensor = "smk/monitoring/sensor"; 
-    const topicLamp = "lamp/status"; // topik lampu
+    const topicSensor = "smk/monitoring/sensor";  // sensor
+    const topicLamp = "lamp/status";              // status lampu (Node-RED → GitHub)
+    const topicControl = "lamp/control";          // kontrol lampu (GitHub → Node-RED)
 
     // 🔹 Connect ke broker
     const client = mqtt.connect(broker);
@@ -66,6 +57,12 @@
       client.subscribe(topicSensor);
       client.subscribe(topicLamp);
     });
+
+    // 🔹 Fungsi tombol kontrol lampu
+    function toggleLamp(cmd) {
+      console.log("Kirim perintah:", cmd);
+      client.publish(topicControl, cmd); // kirim ON/OFF ke Node-RED
+    }
 
     // 🔹 Setup Chart.js
     const ctx = document.getElementById("myChart").getContext("2d");
